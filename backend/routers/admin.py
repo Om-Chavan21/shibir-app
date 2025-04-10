@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import List
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
@@ -19,7 +19,7 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "workshop123")
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/swagger/login")
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     """
@@ -52,6 +52,27 @@ async def get_current_admin(token: str = Depends(oauth2_scheme)):
     
     return username
 
+
+@router.post("/admin/swagger/login", response_model=TokenResponse)
+async def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Admin login endpoint.
+    """
+    # Verify username and password
+    if form_data.username != ADMIN_USERNAME or form_data.password != ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create access token with expiration
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": form_data.username}, expires_delta=access_token_expires
+    )
+    
+    return {"token": access_token}
 
 @router.post("/admin/login", response_model=TokenResponse)
 async def admin_login(form_data: AdminLogin):
