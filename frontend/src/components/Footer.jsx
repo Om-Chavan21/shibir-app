@@ -8,6 +8,9 @@ import ScienceIcon from '@mui/icons-material/Science';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
 
 const Footer = () => {
   return (
@@ -26,11 +29,12 @@ const Footer = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <ScienceIcon sx={{ mr: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                Science Workshops
+                Vijnana Dals
               </Typography>
             </Box>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Join our exciting scientific journey through hands-on workshops designed to inspire the next generation of scientists.
+              Join our Investigatory Research Methodology Workshops designed for students in standards 8-10 
+              to develop scientific curiosity and critical thinking skills.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Link href="#" color="inherit">
@@ -56,7 +60,13 @@ const Footer = () => {
               Workshops
             </Link>
             <Link component={RouterLink} to="/register" color="inherit" sx={{ display: 'block', mb: 1 }}>
-              Register
+              Register for Workshop
+            </Link>
+            <Link component={RouterLink} to="/auth/login" color="inherit" sx={{ display: 'block', mb: 1 }}>
+              Login
+            </Link>
+            <Link component={RouterLink} to="/auth/register" color="inherit" sx={{ display: 'block', mb: 1 }}>
+              Create Account
             </Link>
           </Grid>
           
@@ -64,21 +74,35 @@ const Footer = () => {
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
               Contact Us
             </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Email: info@scienceworkshops.com
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Phone: +1 (555) 123-4567
-            </Typography>
-            <Typography variant="body2">
-              Address: 123 Science Ave, Research City, SC 12345
-            </Typography>
+            
+            <Box sx={{ display: 'flex', mb: 1.5, alignItems: 'flex-start' }}>
+              <LocationOnIcon sx={{ mr: 1, fontSize: '20px', mt: 0.3 }} />
+              <Typography variant="body2">
+                Jnana Prabodhini, 510 Sadashiv Peth, Pune 411030, Maharashtra, India
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', mb: 1.5, alignItems: 'center' }}>
+              <PhoneIcon sx={{ mr: 1, fontSize: '20px' }} />
+              <Typography variant="body2">
+                +91 20 2445 6867
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', mb: 1.5, alignItems: 'center' }}>
+              <EmailIcon sx={{ mr: 1, fontSize: '20px' }} />
+              <Typography variant="body2">
+                vijnana.dals@jnanaprabodhini.org
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
         
-        <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
-          © {new Date().getFullYear()} Science Workshops. All rights reserved.
-        </Typography>
+        <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255, 255, 255, 0.2)', textAlign: 'center' }}>
+          <Typography variant="body2">
+            © {new Date().getFullYear()} Jnana Prabodhini Vijnana Dals. All rights reserved.
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );

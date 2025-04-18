@@ -3,30 +3,41 @@ import { Link as RouterLink } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
-import Divider from '@mui/material/Divider';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import EventIcon from '@mui/icons-material/Event';
-import PeopleIcon from '@mui/icons-material/People';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import WorkshopCard from '../components/WorkshopCard';
 import { getWorkshops } from '../utils/api';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
+  const [filteredWorkshops, setFilteredWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   
   useEffect(() => {
     const fetchWorkshops = async () => {
       try {
+        setLoading(true);
         const data = await getWorkshops();
         setWorkshops(data);
+        setFilteredWorkshops(data);
       } catch (error) {
         console.error("Error fetching workshops:", error);
+        setError("Failed to load workshops. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -34,143 +45,145 @@ const Workshops = () => {
     
     fetchWorkshops();
   }, []);
-
-  if (loading) {
-    return (
-      <Container sx={{ py: 8 }}>
-        <Typography>Loading workshops...</Typography>
-      </Container>
-    );
-  }
+  
+  useEffect(() => {
+    // Apply filters whenever filter states change
+    applyFilters();
+  }, [searchQuery, statusFilter, workshops]);
+  
+  const applyFilters = () => {
+    let result = [...workshops];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(workshop => 
+        workshop.title.toLowerCase().includes(query) || 
+        workshop.description.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      const today = new Date();
+      const deadlineFilter = workshop => {
+        const deadline = new Date(workshop.registrationDeadline);
+        return today <= deadline;
+      };
+      
+      if (statusFilter === 'open') {
+        result = result.filter(deadlineFilter);
+      } else if (statusFilter === 'closed') {
+        result = result.filter(workshop => !deadlineFilter(workshop));
+      }
+    }
+    
+    setFilteredWorkshops(result);
+  };
+  
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+  };
 
   return (
     <Box sx={{ py: 8, backgroundColor: '#f9f9f9', minHeight: '80vh' }}>
       <Container>
         <Typography variant="h3" component="h1" align="center" gutterBottom>
-          Our Science Workshops
+          Science Workshops
         </Typography>
         <Typography variant="body1" align="center" sx={{ mb: 6, maxWidth: 800, mx: 'auto' }}>
-          Explore our upcoming workshops and choose the ones that spark your interest.
-          Each workshop is designed to deliver an engaging, hands-on experience.
+          Explore our past and upcoming workshops designed to inspire scientific curiosity and critical thinking in young minds.
         </Typography>
-
-        <Grid container spacing={4}>
-          {workshops.map((workshop) => (
-            <Grid item xs={12} key={workshop.id}>
-              <Card sx={{ overflow: 'hidden' }}>
-                <Grid container>
-                  <Grid item xs={12} md={4} sx={{ 
-                    backgroundColor: 'primary.main', 
-                    color: 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    p: 3,
-                    textAlign: 'center'
-                  }}>
-                    <Typography variant="h4" component="h2" gutterBottom>
-                      {workshop.title}
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                      {new Date(workshop.date).toLocaleDateString()}
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1 }}>
-                      <AccessTimeIcon sx={{ mr: 1 }} />
-                      <Typography>{workshop.time}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <LocationOnIcon sx={{ mr: 1 }} />
-                      <Typography>{workshop.location}</Typography>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid item xs={12} md={8}>
-                    <CardContent sx={{ p: 3 }}>
-                      <Typography variant="body1" paragraph>
-                        {workshop.description}
-                      </Typography>
-                      <Divider sx={{ my: 2 }} />
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <PeopleIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="body2">
-                              <strong>Audience:</strong> {workshop.audience}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <AccessTimeIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="body2">
-                              <strong>Duration:</strong> {workshop.duration}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <AttachMoneyIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="body2">
-                              <strong>Fee:</strong> {workshop.fee ? `$${workshop.fee}` : 'Free'}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="body2">
-                              <strong>Registration Deadline:</strong> {new Date(workshop.registrationDeadline).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      </Grid>
-                      
-                      <Typography variant="body1" sx={{ mt: 2 }}>
-                        <strong>What You Will Learn:</strong>
-                      </Typography>
-                      <ul>
-                        {workshop.learningOutcomes.map((outcome, index) => (
-                          <li key={index}>{outcome}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                    
-                    <CardActions sx={{ px: 3, pb: 3 }}>
-                      <Button 
-                        variant="contained" 
-                        color="primary"
-                        component={RouterLink}
-                        to="/register"
-                      >
-                        Register Now
-                      </Button>
-                    </CardActions>
-                  </Grid>
-                </Grid>
-              </Card>
+        
+        {/* Filters */}
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Search Workshops"
+                variant="outlined"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Grid>
-          ))}
-        </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Registration Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={handleStatusFilterChange}
+                  label="Registration Status"
+                >
+                  <MenuItem value="all">All Workshops</MenuItem>
+                  <MenuItem value="open">Registration Open</MenuItem>
+                  <MenuItem value="closed">Registration Closed</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 4 }}>
+            {error}
+          </Alert>
+        ) : filteredWorkshops.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" paragraph>
+              No workshops match your filters.
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary"
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('all');
+              }}
+            >
+              Clear Filters
+            </Button>
+          </Paper>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredWorkshops.map((workshop) => (
+              <Grid item xs={12} sm={6} md={4} key={workshop.id}>
+                <WorkshopCard workshop={workshop} />
+              </Grid>
+            ))}
+          </Grid>
+        )}
         
         <Box sx={{ textAlign: 'center', mt: 6 }}>
           <Typography variant="h4" gutterBottom>
-            Interested in our workshops?
+            Want to stay updated?
           </Typography>
           <Typography variant="body1" paragraph sx={{ maxWidth: 600, mx: 'auto' }}>
-            Sign up to receive updates about upcoming workshops and special events.
+            Register now to receive notifications about upcoming workshops and special events.
           </Typography>
           <Button 
             variant="contained" 
             color="secondary" 
             size="large"
             component={RouterLink}
-            to="/register"
+            to="/auth/register"
           >
-            Register for Updates
+            Create an Account
           </Button>
         </Box>
       </Container>

@@ -15,7 +15,9 @@ import Divider from '@mui/material/Divider';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SchoolIcon from '@mui/icons-material/School';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import { getAdminDashboardStats } from '../../utils/api';
 
 const AdminDashboard = () => {
@@ -50,7 +52,7 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <Container sx={{ py: 8 }}>
-        <Typography color="error" align="center">{error}</Typography>
+        <Alert severity="error">{error}</Alert>
         <Box sx={{ textAlign: 'center', mt: 3 }}>
           <Button variant="contained" onClick={() => window.location.reload()}>
             Retry
@@ -67,15 +69,15 @@ const AdminDashboard = () => {
           Admin Dashboard
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" paragraph>
-          Welcome back! Here's an overview of your workshop registrations and statistics.
+          Welcome back! Here's an overview of workshop registrations and statistics.
         </Typography>
         
-        <Grid container spacing={4} sx={{ mb: 4, mt: 2 }}>
-          <Grid item xs={12} sm={6} md={4}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={3}>
             <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <PeopleIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div">
+                <Typography variant="h6" component="div">
                   Total Registrations
                 </Typography>
               </Box>
@@ -88,11 +90,11 @@ const AdminDashboard = () => {
             </Paper>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} md={3}>
             <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <EventIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div">
+                <Typography variant="h6" component="div">
                   Upcoming Workshops
                 </Typography>
               </Box>
@@ -105,15 +107,15 @@ const AdminDashboard = () => {
             </Paper>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} md={3}>
             <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <AssessmentIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Typography variant="h5" component="div">
+                <Typography variant="h6" component="div">
                   Popular Workshop
                 </Typography>
               </Box>
-              <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
                 {stats.mostPopularWorkshop}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 'auto', pt: 2 }}>
@@ -121,96 +123,117 @@ const AdminDashboard = () => {
               </Typography>
             </Paper>
           </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'primary.dark', color: 'white' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <SchoolIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Typography variant="h6" component="div">
+                  Quick Actions
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button 
+                  variant="contained" 
+                  color="secondary" 
+                  component={RouterLink} 
+                  to="/admin/workshops"
+                  fullWidth
+                >
+                  Manage Workshops
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'white',
+                    '&:hover': { 
+                      borderColor: 'white', 
+                      backgroundColor: 'rgba(255,255,255,0.08)' 
+                    } 
+                  }}
+                  component={RouterLink} 
+                  to="/admin/registrations"
+                  fullWidth
+                >
+                  View Registrations
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
         </Grid>
         
         <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Recent Registrations
-                </Typography>
-                <List>
-                  {stats.recentRegistrationsList.length > 0 ? (
-                    stats.recentRegistrationsList.map((registration, index) => (
-                      <div key={registration.id}>
-                        <ListItem>
-                          <ListItemText 
-                            primary={registration.name} 
-                            secondary={
-                              <>
-                                {registration.email} • {new Date(registration.registrationDate).toLocaleDateString()}
-                                <br />
-                                Interest: {registration.workshopInterest}
-                              </>
-                            } 
-                          />
-                        </ListItem>
-                        {index < stats.recentRegistrationsList.length - 1 && <Divider />}
-                      </div>
-                    ))
-                  ) : (
-                    <ListItem>
-                      <ListItemText primary="No recent registrations" />
-                    </ListItem>
-                  )}
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Workshop Interest Breakdown
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {Object.entries(stats.workshopInterestBreakdown).map(([workshop, count]) => (
-                    <Box key={workshop} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography sx={{ minWidth: 150 }}>{workshop}:</Typography>
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Workshop Interest Breakdown
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                {Object.entries(stats.workshopInterestBreakdown).map(([workshop, count]) => (
+                  <Box key={workshop} sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography sx={{ minWidth: 150, fontWeight: 'bold' }}>{workshop}:</Typography>
+                    <Box sx={{ flexGrow: 1, mr: 2 }}>
                       <Box
                         sx={{
-                          flexGrow: 1,
-                          bgcolor: 'primary.light',
-                          height: 24,
+                          bgcolor: 'primary.main',
+                          height: 8,
                           borderRadius: 1,
-                          position: 'relative',
+                          width: `${(count / stats.totalRegistrations) * 100}%`,
+                          minWidth: 10,
                         }}
-                      >
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            bgcolor: 'primary.main',
-                            width: `${(count / stats.totalRegistrations) * 100}%`,
-                            borderRadius: 1,
-                          }}
-                        />
-                      </Box>
-                      <Typography sx={{ ml: 2, minWidth: 30 }}>{count}</Typography>
+                      />
                     </Box>
-                  ))}
-                </Box>
-              </CardContent>
-            </Card>
+                    <Typography>{count} registrations</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Recent Registrations
+              </Typography>
+              <List>
+                {stats.recentRegistrationsList.length > 0 ? (
+                  stats.recentRegistrationsList.map((registration, index) => (
+                    <div key={registration.id}>
+                      <ListItem>
+                        <ListItemText 
+                          primary={registration.studentName} 
+                          secondary={
+                            <>
+                              {registration.workshopInterest} <br />
+                              {new Date(registration.created_at).toLocaleDateString()}
+                            </>
+                          } 
+                        />
+                      </ListItem>
+                      {index < stats.recentRegistrationsList.length - 1 && <Divider />}
+                    </div>
+                  ))
+                ) : (
+                  <ListItem>
+                    <ListItemText primary="No recent registrations" />
+                  </ListItem>
+                )}
+              </List>
+              
+              <Box sx={{ mt: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  fullWidth
+                  component={RouterLink}
+                  to="/admin/registrations"
+                >
+                  View All Registrations
+                </Button>
+              </Box>
+            </Paper>
           </Grid>
         </Grid>
-        
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-          <Button 
-            variant="contained" 
-            color="primary"
-            size="large"
-            component={RouterLink}
-            to="/admin/registrations"
-            sx={{ mx: 1 }}
-          >
-            View All Registrations
-          </Button>
-        </Box>
       </Container>
     </Box>
   );

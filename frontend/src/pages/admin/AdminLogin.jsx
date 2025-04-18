@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -10,7 +10,7 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Avatar from '@mui/material/Avatar';
-import { adminLogin } from '../../utils/api';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -18,15 +18,19 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, adminLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get redirect path from location state or default to dashboard
+  const from = location.state?.from || '/admin/dashboard';
   
   useEffect(() => {
-    // If already authenticated, redirect to dashboard
+    // If already authenticated, redirect
     if (isAuthenticated) {
-      navigate('/admin/dashboard');
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,11 +44,14 @@ const AdminLogin = () => {
     setLoading(true);
     
     try {
-      const response = await adminLogin({ username, password });
-      login(response.token);
-      navigate('/admin/dashboard');
+      await adminLogin({ username, password });
+      navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials and try again.');
+      setError(
+        err.detail || 
+        err.message || 
+        'Login failed. Please check your credentials and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -61,7 +68,7 @@ const AdminLogin = () => {
         </Typography>
         
         {error && (
-          <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
+          <Alert severity="error" sx={{ width: '100%', mt: 2 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
@@ -95,10 +102,11 @@ const AdminLogin = () => {
             type="submit"
             fullWidth
             variant="contained"
+            color="primary"
             sx={{ mt: 3, mb: 2, py: 1.5 }}
             disabled={loading}
           >
-            {loading ? 'Logging in...' : 'Sign In'}
+            {loading ? <CircularProgress size={24} /> : 'Sign In'}
           </Button>
         </Box>
         

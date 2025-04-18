@@ -4,25 +4,36 @@ import os
 from dotenv import load_dotenv
 from bson import ObjectId
 from datetime import datetime, timedelta
+from passlib.context import CryptContext
+from jose import jwt
+from typing import List, Dict, Any, Optional
+import models
 
 load_dotenv()
 
 # MongoDB connection
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+SECRET_KEY = os.getenv("SECRET_KEY", "a_secret_key_for_jwt_should_be_in_env")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
+
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
 database = client["science_workshops"]
 
 # Collections
 workshops_collection = database.workshops
 registrations_collection = database.registrations
+users_collection = database.users
+testimonials_collection = database.testimonials
 
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Helper functions to convert between MongoDB ObjectId and string
+# Helper functions
 def get_object_id(id_str):
     if isinstance(id_str, str):
         return ObjectId(id_str)
     return id_str
-
 
 def serialize_doc_id(doc):
     if doc and "_id" in doc:
@@ -30,79 +41,142 @@ def serialize_doc_id(doc):
         del doc["_id"]
     return doc
 
-
 def serialize_list(docs):
     return [serialize_doc_id(doc) for doc in docs]
 
+# Auth functions
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-# Initialize workshops data
-async def init_workshops():
-    count = await workshops_collection.count_documents({})
-    if count == 0:
-        default_workshops = [
-            {
-                "title": "Astronomy and Space Exploration",
-                "description": "Embark on a cosmic journey through our solar system and beyond. This workshop introduces participants to the wonders of the universe, with hands-on telescope observations, planetarium experiences, and interactive space science activities.",
-                "date": "2023-07-15",
-                "time": "6:00 PM - 9:00 PM",
-                "location": "City Observatory and Science Center",
-                "audience": "Ages 10 and above",
-                "duration": "3 hours",
-                "fee": 25.00,
-                "registrationDeadline": "2023-07-10",
-                "learningOutcomes": [
-                    "Understand basic astronomical concepts and celestial bodies",
-                    "Learn how to use telescopes and star charts",
-                    "Discover current space missions and exploration technologies",
-                    "Identify major constellations visible in the night sky"
-                ]
-            },
-            {
-                "title": "Chemistry Lab Experience",
-                "description": "Dive into the fascinating world of chemistry with this interactive laboratory workshop. Participants will conduct exciting experiments, learn about chemical reactions, and explore the molecular building blocks that make up our world.",
-                "date": "2023-07-22",
-                "time": "10:00 AM - 1:00 PM",
-                "location": "University Science Building, Lab 103",
-                "audience": "Ages 12 and above",
-                "duration": "3 hours",
-                "fee": 30.00,
-                "registrationDeadline": "2023-07-17",
-                "learningOutcomes": [
-                    "Perform safe and engaging chemistry experiments",
-                    "Understand chemical reactions and their applications",
-                    "Learn laboratory techniques and safety protocols",
-                    "Connect chemistry concepts to everyday phenomena"
-                ]
-            }
-        ]
-        await workshops_collection.insert_many(default_workshops)
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# User operations
+async def create_user(user_data: models.UserCreate):
+    user_dict = user_data.dict()
+    user_dict["password"] = get_password_hash(user_dict["password"])
+    user_dict["role"] = models.UserRole.USER
+    user_dict["created_at"] = datetime.now()
+    
+    # Check if user already exists
+    existing_user = await users_collection.find_one({"email": user_dict["email"]})
+    if existing_user:
+        return None
+    
+    result = await users_collection.insert_one(user_dict)
+    new_user = await users_collection.find_one({"_id": result.inserted_id})
+    return serialize_doc_id(new_user)
+
+async def authenticate_user(email: str, password: str):
+    user = await users_collection.find_one({"email": email})
+    if not user:
+        return None
+    if not verify_password(password, user["password"]):
+        return None
+    return serialize_doc_id(user)
+
+async def get_user(user_id: str):
+    user = await users_collection.find_one({"_id": get_object_id(user_id)})
+    if user:
+        return serialize_doc_id(user)
+    return None
+
+async def get_user_by_email(email: str):
+    user = await users_collection.find_one({"email": email})
+    if user:
+        return serialize_doc_id(user)
+    return None
+
+async def update_user_role(user_id: str, role: str):
+    await users_collection.update_one(
+        {"_id": get_object_id(user_id)},
+        {"$set": {"role": role}}
+    )
+    return await get_user(user_id)
 
 # Workshop operations
 async def get_all_workshops():
-    await init_workshops()  # Ensure workshop data exists
-    workshops = await workshops_collection.find().to_list(length=100)
+    workshops = await workshops_collection.find().sort("date", 1).to_list(length=100)
     return serialize_list(workshops)
 
+async def get_workshop(workshop_id: str):
+    workshop = await workshops_collection.find_one({"_id": get_object_id(workshop_id)})
+    if workshop:
+        return serialize_doc_id(workshop)
+    return None
 
-async def create_workshop(workshop_data):
+async def create_workshop(workshop_data: Dict[str, Any]):
+    workshop_data["created_at"] = datetime.now()
+    workshop_data["updated_at"] = datetime.now()
     result = await workshops_collection.insert_one(workshop_data)
     new_workshop = await workshops_collection.find_one({"_id": result.inserted_id})
     return serialize_doc_id(new_workshop)
 
+async def update_workshop(workshop_id: str, workshop_data: Dict[str, Any]):
+    workshop_data["updated_at"] = datetime.now()
+    await workshops_collection.update_one(
+        {"_id": get_object_id(workshop_id)},
+        {"$set": workshop_data}
+    )
+    return await get_workshop(workshop_id)
+
+async def delete_workshop(workshop_id: str):
+    result = await workshops_collection.delete_one({"_id": get_object_id(workshop_id)})
+    return result.deleted_count > 0
 
 # Registration operations
-async def register_for_workshop(registration_data):
-    registration_data["registrationDate"] = datetime.now()
+async def register_for_workshop(registration_data: Dict[str, Any]):
+    registration_data["created_at"] = datetime.now()
+    registration_data["updated_at"] = datetime.now()
     result = await registrations_collection.insert_one(registration_data)
     created_registration = await registrations_collection.find_one({"_id": result.inserted_id})
     return serialize_doc_id(created_registration)
 
-
 async def get_all_registrations():
-    registrations = await registrations_collection.find().sort("registrationDate", -1).to_list(length=1000)
+    registrations = await registrations_collection.find().sort("created_at", -1).to_list(length=1000)
     return serialize_list(registrations)
 
+async def get_user_registrations(user_id: str):
+    registrations = await registrations_collection.find({"userId": user_id}).sort("created_at", -1).to_list(length=100)
+    return serialize_list(registrations)
+
+async def get_registration(registration_id: str):
+    registration = await registrations_collection.find_one({"_id": get_object_id(registration_id)})
+    if registration:
+        return serialize_doc_id(registration)
+    return None
+
+async def update_registration_status(registration_id: str, status: str):
+    await registrations_collection.update_one(
+        {"_id": get_object_id(registration_id)},
+        {"$set": {"registrationStatus": status, "updated_at": datetime.now()}}
+    )
+    return await get_registration(registration_id)
+
+async def delete_registration(registration_id: str):
+    result = await registrations_collection.delete_one({"_id": get_object_id(registration_id)})
+    return result.deleted_count > 0
+
+# Testimonial operations
+async def create_testimonial(testimonial_data: Dict[str, Any]):
+    result = await testimonials_collection.insert_one(testimonial_data)
+    new_testimonial = await testimonials_collection.find_one({"_id": result.inserted_id})
+    return serialize_doc_id(new_testimonial)
+
+async def get_visible_testimonials():
+    testimonials = await testimonials_collection.find({"isVisible": True}).to_list(length=100)
+    return serialize_list(testimonials)
+
+async def get_all_testimonials():
+    testimonials = await testimonials_collection.find().to_list(length=100)
+    return serialize_list(testimonials)
 
 # Dashboard statistics
 async def get_dashboard_stats():
@@ -111,7 +185,7 @@ async def get_dashboard_stats():
     
     # Recent registrations (last 7 days)
     seven_days_ago = datetime.now() - timedelta(days=7)
-    recent_count = await registrations_collection.count_documents({"registrationDate": {"$gte": seven_days_ago}})
+    recent_count = await registrations_collection.count_documents({"created_at": {"$gte": seven_days_ago}})
     
     # Get upcoming workshops
     workshops = await workshops_collection.find().sort("date", 1).to_list(length=10)
@@ -139,17 +213,10 @@ async def get_dashboard_stats():
         
         if count > popular_workshop_registrations:
             popular_workshop_registrations = count
-            if interest == "astronomy":
-                most_popular_workshop = "Astronomy and Space Exploration"
-            elif interest == "chemistry":
-                most_popular_workshop = "Chemistry Lab Experience"
-            elif interest == "both":
-                most_popular_workshop = "Both Workshops"
-            else:
-                most_popular_workshop = "Undecided"
+            most_popular_workshop = interest
     
     # Recent registrations list
-    recent_registrations = await registrations_collection.find().sort("registrationDate", -1).limit(5).to_list(length=5)
+    recent_registrations = await registrations_collection.find().sort("created_at", -1).limit(5).to_list(length=5)
     
     return {
         "totalRegistrations": total_registrations,

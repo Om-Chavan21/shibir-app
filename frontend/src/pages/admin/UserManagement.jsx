@@ -1,15 +1,35 @@
 import { useState, useEffect } from 'react';
-import {
-  Container, Typography, Box, Paper, Button, TextField, Grid,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
-  CircularProgress, Switch, FormControlLabel, Alert, InputAdornment
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
+import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
-import api from '../../utils/api';
-import PasswordField from '../../components/PasswordField';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Chip from '@mui/material/Chip';
+import { getAllUsers, updateUserRole, deleteUser } from '../../utils/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -20,13 +40,15 @@ const UserManagement = () => {
   // Dialog states
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
+  const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
-    address: '',
     password: '',
-    is_admin: false
+    role: 'user'
   });
+  
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -41,17 +63,11 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await api.get('/admin/users', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setUsers(response.data);
-      setError('');
+      const data = await getAllUsers();
+      setUsers(data);
     } catch (err) {
-      setError('Failed to fetch users. Please try again.');
-      console.error('Error fetching users:', err);
+      console.error("Error fetching users:", err);
+      setError('Failed to load users. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -59,40 +75,41 @@ const UserManagement = () => {
   
   const handleOpenDialog = (mode, user = null) => {
     setDialogMode(mode);
+    setFormErrors({});
+    
     if (mode === 'edit' && user) {
+      setSelectedUser(user);
       setFormData({
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        address: user.address || '',
-        password: '',  // Don't set password for edit
-        is_admin: user.is_admin
+        ...user,
+        password: ''  // Don't prefill password
       });
     } else {
+      setSelectedUser(null);
       setFormData({
         name: '',
+        email: '',
         phone: '',
-        address: '',
         password: '',
-        is_admin: false
+        role: 'user'
       });
     }
-    setFormErrors({});
+    
     setOpenDialog(true);
   };
   
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setSelectedUser(null);
   };
   
   const handleInputChange = (e) => {
     const { name, value, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'is_admin' ? checked : value
+      [name]: name === 'role' ? value : (name === 'is_admin' ? checked : value)
     });
     
-    // Clear the error for this field
+    // Clear error
     if (formErrors[name]) {
       setFormErrors({
         ...formErrors,
@@ -103,18 +120,23 @@ const UserManagement = () => {
   
   const validateForm = () => {
     const errors = {};
+    
     if (!formData.name.trim()) errors.name = 'Name is required';
+    
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Email is invalid';
+    }
     
     if (!formData.phone.trim()) {
       errors.phone = 'Phone number is required';
-    } else if (!/^\d{10}$/.test(formData.phone)) {
-      errors.phone = 'Phone number must be 10 digits';
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
+      errors.phone = 'Please enter a valid 10-digit phone number';
     }
     
-    if (!formData.address.trim()) errors.address = 'Address is required';
-    
     if (dialogMode === 'add' && !formData.password) {
-      errors.password = 'Password is required';
+      errors.password = 'Password is required for new users';
     } else if (formData.password && formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
@@ -123,39 +145,15 @@ const UserManagement = () => {
     return Object.keys(errors).length === 0;
   };
   
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-    
-    setIsSubmitting(true);
-    setSuccess('');
-    setError('');
-    
+  const handleRoleChange = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (dialogMode === 'add') {
-        await api.post('/admin/users', formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSuccess('User added successfully!');
-      } else {
-        const { id, ...updateData } = formData;
-        // Only include password if it was provided
-        if (!updateData.password) {
-          delete updateData.password;
-        }
-        
-        await api.put(`/admin/users/${id}`, updateData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSuccess('User updated successfully!');
-      }
-      
-      // Refresh users list
+      setIsSubmitting(true);
+      await updateUserRole(userId, newRole);
+      setSuccess(`User role updated successfully!`);
       fetchUsers();
-      handleCloseDialog();
     } catch (err) {
-      setError(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} user: ${err.response?.data?.detail || err.message}`);
+      console.error("Error updating user role:", err);
+      setError(`Failed to update user role: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,223 +173,254 @@ const UserManagement = () => {
     if (!userToDelete) return;
     
     setIsSubmitting(true);
-    setSuccess('');
-    setError('');
     
     try {
-      const token = localStorage.getItem('token');
-      await api.delete(`/admin/users/${userToDelete.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      await deleteUser(userToDelete.id);
       setSuccess('User deleted successfully!');
       fetchUsers();
+      handleCloseDeleteDialog();
     } catch (err) {
-      setError(`Failed to delete user: ${err.response?.data?.detail || err.message}`);
+      console.error("Error deleting user:", err);
+      setError(`Failed to delete user: ${err.message}`);
     } finally {
       setIsSubmitting(false);
-      handleCloseDeleteDialog();
     }
   };
   
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'admin':
+        return 'error';
+      case 'organizer':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
   return (
-    <Container maxWidth="lg" className="py-8">
-      <Box className="flex justify-between items-center mb-6">
-        <Typography variant="h4" component="h1">
-          User Management
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog('add')}
-        >
-          Add User
-        </Button>
-      </Box>
-      
-      {success && (
-        <Alert severity="success" className="mb-4" onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" className="mb-4" onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-      
-      {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>Address</TableCell>
-                <TableCell align="center">Admin</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>+91 {user.phone}</TableCell>
-                  <TableCell>{user.address}</TableCell>
-                  <TableCell align="center">
-                    {user.is_admin ? (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                        Yes
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
-                        No
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => handleOpenDialog('edit', user)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleOpenDeleteDialog(user)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-      
-      {/* Add/Edit User Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {dialogMode === 'add' ? 'Add New User' : 'Edit User'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} className="pt-2">
-            <Grid item xs={12}>
-              <TextField
-                name="name"
-                label="Full Name"
-                fullWidth
-                value={formData.name}
-                onChange={handleInputChange}
-                error={!!formErrors.name}
-                helperText={formErrors.name}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                name="phone"
-                label="Phone Number"
-                fullWidth
-                value={formData.phone}
-                onChange={handleInputChange}
-                error={!!formErrors.phone}
-                helperText={formErrors.phone}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">+91</InputAdornment>,
-                }}
-                inputProps={{ maxLength: 10 }}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                name="address"
-                label="Address"
-                fullWidth
-                multiline
-                rows={2}
-                value={formData.address}
-                onChange={handleInputChange}
-                error={!!formErrors.address}
-                helperText={formErrors.address}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <PasswordField
-                id="password"
-                label={dialogMode === 'add' ? 'Password' : 'New Password (leave blank to keep unchanged)'}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                error={!!formErrors.password}
-                helperText={formErrors.password}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="is_admin"
-                    checked={formData.is_admin}
-                    onChange={handleInputChange}
-                    color="primary"
-                  />
-                }
-                label="Administrator Access"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-        <Button onClick={handleCloseDialog} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="primary"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <CircularProgress size={24} /> : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete user "{userToDelete?.name}"? This action cannot be undone.
+    <Box sx={{ py: 8, backgroundColor: '#f9f9f9', minHeight: '80vh' }}>
+      <Container>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1">
+            User Management
           </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} disabled={isSubmitting}>
-            Cancel
-          </Button>
           <Button 
-            onClick={handleDeleteUser} 
-            color="error" 
-            variant="contained"
-            disabled={isSubmitting}
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={() => handleOpenDialog('add')}
           >
-            {isSubmitting ? <CircularProgress size={24} /> : 'Delete'}
+            Add User
           </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        </Box>
+        
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
+            {success}
+          </Alert>
+        )}
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+        
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : users.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" paragraph>
+              No users found
+            </Typography>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              onClick={() => handleOpenDialog('add')}
+            >
+              Add New User
+            </Button>
+          </Paper>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id} hover>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>
+                      <FormControl size="small">
+                        <Select
+                          value={user.role || 'user'}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          variant="outlined"
+                          size="small"
+                          disabled={isSubmitting}
+                          renderValue={(selected) => (
+                            <Chip
+                              label={selected.toUpperCase()}
+                              size="small"
+                              color={getRoleBadgeColor(selected)}
+                            />
+                          )}
+                        >
+                          <MenuItem value="user">USER</MenuItem>
+                          <MenuItem value="organizer">ORGANIZER</MenuItem>
+                          <MenuItem value="admin">ADMIN</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => handleOpenDialog('edit', user)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleOpenDeleteDialog(user)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+        
+        {/* User Form Dialog */}
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {dialogMode === 'add' ? 'Add New User' : 'Edit User'}
+          </DialogTitle>
+          <DialogContent dividers>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Full Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  error={!!formErrors.name}
+                  helperText={formErrors.name}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  error={!!formErrors.email}
+                  helperText={formErrors.email}
+                  disabled={dialogMode === 'edit'}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Phone Number"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  error={!!formErrors.phone}
+                  helperText={formErrors.phone}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={dialogMode === 'add' ? 'Password' : 'New Password (leave empty to keep current)'}
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  error={!!formErrors.password}
+                  helperText={formErrors.password || (dialogMode === 'edit' ? 'Leave blank to keep current password' : '')}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>User Role</InputLabel>
+                  <Select
+                    name="role"
+                    value={formData.role || 'user'}
+                    onChange={handleInputChange}
+                    label="User Role"
+                  >
+                    <MenuItem value="user">User</MenuItem>
+                    <MenuItem value="organizer">Organizer</MenuItem>
+                    <MenuItem value="admin">Admin</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button 
+              onClick={() => {
+                if (validateForm()) {
+                  // Submit form logic here
+                  handleCloseDialog();
+                }
+              }} 
+              variant="contained"
+            >
+              {dialogMode === 'add' ? 'Create' : 'Update'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete the user "{userToDelete?.name}"? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+            <Button 
+              onClick={handleDeleteUser} 
+              color="error" 
+              variant="contained"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <CircularProgress size={24} /> : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
   );
 };
 
 export default UserManagement;
-
