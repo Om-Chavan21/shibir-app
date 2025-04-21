@@ -4,7 +4,6 @@ from typing import Optional, List
 
 class WorkshopBase(BaseModel):
     title: str
-    slug: str
     description: str
     short_description: str
     image_url: str

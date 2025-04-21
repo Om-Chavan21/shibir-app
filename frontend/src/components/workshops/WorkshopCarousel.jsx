@@ -61,11 +61,11 @@ const WorkshopCarousel = ({ workshops = [], autoPlayInterval = 5000 }) => {
                 color="secondary" 
                 size="large" 
                 component={RouterLink} 
-                to={`/workshops/${workshop.slug}`}
+                to={`/workshops/${workshop._id}`}
                 sx={{ mt: 2 }}
               >
                 Learn More
-              </Button>
+              </Button> 
             </Box>
           </Paper>
         ))}

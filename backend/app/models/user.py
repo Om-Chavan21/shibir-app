@@ -23,6 +23,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     parent_name: Optional[str] = None
     parent_phone: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
     
 class UserInDB(UserBase):
     id: str = Field(default=None, alias="_id")

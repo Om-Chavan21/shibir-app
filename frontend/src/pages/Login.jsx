@@ -128,6 +128,11 @@ const Login = () => {
               >
                 {isSubmitting ? <CircularProgress size={24} /> : 'Login'}
               </Button>
+              <Box sx={{ mt: 1, textAlign: 'right' }}>
+                <Link component={RouterLink} to="/forgot-password" variant="body2">
+                  Forgot password?
+                </Link>
+              </Box>
             </Form>
           )}
         </Formik>

@@ -200,7 +200,7 @@ const Dashboard = () => {
                           size="small" 
                           color="primary"
                           component={RouterLink}
-                          to={`/workshops/${workshop.slug}`}
+                          to={`/workshops/${workshop._id}`}
                         >
                           Learn More
                         </Button>

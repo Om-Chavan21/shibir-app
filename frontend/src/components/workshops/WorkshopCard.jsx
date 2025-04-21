@@ -5,7 +5,6 @@ import { Link as RouterLink } from 'react-router-dom';
 const WorkshopCard = ({ workshop }) => {
   const { 
     title, 
-    slug, 
     image_url, 
     short_description, 
     start_date, 
@@ -101,7 +100,7 @@ const WorkshopCard = ({ workshop }) => {
       <CardActions sx={{ justifyContent: 'flex-end', p: 2 }}>
         <Button
           component={RouterLink}
-          to={`/workshops/${slug}`}
+          to={`/workshops/${workshop._id}`}
           size="small"
           variant="outlined"
           color="primary"

@@ -95,7 +95,7 @@ const Registration = () => {
         workshop_id: workshopId,
         user_id: isAuthenticated ? user.id : undefined
       };
-      
+      console.log(registrationData)
       await registerForWorkshop(registrationData);
       
       showMessage('Registration submitted successfully!', 'success');

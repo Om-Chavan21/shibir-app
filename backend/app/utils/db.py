@@ -2,6 +2,7 @@ import os
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
+from typing import List, Dict, Any
 
 load_dotenv()
 
@@ -20,8 +21,8 @@ testimonials_collection = db.testimonials
 async def init_db():
     # Create indexes for performance
     await users_collection.create_index("email", unique=True)
-    await workshops_collection.create_index("slug", unique=True)
-    await registrations_collection.create_index([("user_id", 1), ("workshop_id", 1)], unique=True)
+    await workshops_collection.create_index("id", unique=True)
+    await registrations_collection.create_index([("user_id", 1), ("workshop_id", 1)], unique=True, sparse=True)
 
 # Helper functions for ObjectId conversion
 def serialize_id(id_str):
@@ -42,4 +43,25 @@ async def serialize_list(cursor):
     result = []
     async for doc in cursor:
         result.append(parse_mongo_doc(doc))
-    return result   
+    return result
+
+# Additional helper function
+def convert_object_ids(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert string IDs to ObjectIds in a dictionary before inserting into MongoDB
+    """
+    result = {}
+    for key, value in data.items():
+        if key == "_id" and isinstance(value, str):
+            try:
+                result[key] = ObjectId(value)
+            except:
+                result[key] = value
+        elif key.endswith("_id") and isinstance(value, str):
+            try:
+                result[key] = ObjectId(value)
+            except:
+                result[key] = value
+        else:
+            result[key] = value
+    return result

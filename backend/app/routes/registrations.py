@@ -81,8 +81,10 @@ async def create_registration(registration: RegistrationCreate, current_user: Op
         workshop["title"]
     )
     
-    # Function was cut off in the previous response
+    # Retrieve the registration and convert _id to string
     new_registration = await registrations_collection.find_one({"_id": result.inserted_id})
+    new_registration["_id"] = str(new_registration["_id"])
+    
     return new_registration
 
 @router.get("/registrations/me", response_model=List[Registration])
@@ -91,18 +93,13 @@ async def get_my_registrations(current_user: User = Depends(get_current_user)):
     registrations = []
     
     if current_user:
-        print(current_user)
-        print("=================================")
-        print("=================================")
-        print("=================================")
-        print("=================================")
-        print("=================================")
-        print("=================================")
-        print(current_user)
         registrations = await registrations_collection.find(
-            {"id": str(current_user.id)}
+            {"user_id": str(current_user.id)}
         ).to_list(1000)
     
+    for registration in registrations:
+        registration["_id"] = str(registration["_id"])
+
     return registrations
 
 @router.get("/registrations/{registration_id}", response_model=Registration)

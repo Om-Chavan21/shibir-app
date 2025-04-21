@@ -68,6 +68,23 @@ async def send_registration_approval(to_email: str, user_name: str, workshop_nam
     """
     return await send_email(to_email, subject, content)
 
+async def send_otp_email(to_email: str, user_name: str, otp: str):
+    subject = "Password Reset OTP"
+    content = f"""
+    <html>
+    <body>
+        <h2>Password Reset OTP</h2>
+        <p>Dear {user_name},</p>
+        <p>We received a request to reset your password. Please use the following OTP to reset your password:</p>
+        <p style="font-size: 24px; font-weight: bold; text-align: center; padding: 10px; background-color: #f0f0f0; border-radius: 5px;">{otp}</p>
+        <p>This OTP is valid for 30 minutes.</p>
+        <p>If you didn't request this, please ignore this email or contact us if you have concerns.</p>
+        <p>Best regards,<br>Jnana Prabodhini Vijnana Dals Team</p>
+    </body>
+    </html>
+    """
+    return await send_email(to_email, subject, content)
+
 async def send_password_reset(to_email: str, reset_link: str):
     subject = "Password Reset Request"
     content = f"""

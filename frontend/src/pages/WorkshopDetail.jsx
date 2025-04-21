@@ -28,10 +28,10 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
-import { getWorkshopBySlug } from '../services/api';
+import { getWorkshopById } from '../services/api';
 
 const WorkshopDetail = () => {
-  const { slug } = useParams();
+  const { id } = useParams();
   const [workshop, setWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +42,7 @@ const WorkshopDetail = () => {
     const loadWorkshop = async () => {
       try {
         setLoading(true);
-        const data = await getWorkshopBySlug(slug);
+        const data = await getWorkshopById(id);
         setWorkshop(data);
         setLoading(false);
       } catch (err) {
@@ -53,7 +53,7 @@ const WorkshopDetail = () => {
     };
     
     loadWorkshop();
-  }, [slug]);
+  }, [id]);
   
   const handleRegisterClick = () => {
     navigate(`/registration/${workshop._id}`);

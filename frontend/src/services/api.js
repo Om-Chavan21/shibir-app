@@ -41,13 +41,8 @@ export const getWorkshops = async (params = {}) => {
   return response.data;
 };
 
-export const getWorkshopBySlug = async (slug) => {
-  const response = await api.get(`/workshops/${slug}`);
-  return response.data;
-};
-
 export const getWorkshopById = async (id) => {
-  const response = await api.get(`/workshops/id/${id}`);
+  const response = await api.get(`/workshops/${id}`);
   return response.data;
 };
 
@@ -89,6 +84,22 @@ export const updateRegistration = async (id, data) => {
 
 export const cancelRegistration = async (id) => {
   const response = await api.delete(`/registrations/${id}`);
+  return response.data;
+};
+
+// Add password reset functions
+export const forgotPassword = async (email) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async (resetData) => {
+  const response = await api.post('/auth/reset-password', resetData);
+  return response.data;
+};
+
+export const changePassword = async (passwordData) => {
+  const response = await api.post('/auth/change-password', passwordData);
   return response.data;
 };
 

@@ -16,7 +16,8 @@ async def get_workshops(
     limit: int = 20,
     status: Optional[str] = None,
     grade: Optional[int] = None,
-    featured: Optional[bool] = None
+    featured: Optional[bool] = None,
+    search: Optional[str] = None
 ):
     # Build query filters
     query = {}
@@ -26,23 +27,19 @@ async def get_workshops(
         query["eligible_grades"] = grade
     if featured is not None:
         query["featured"] = featured
+    if search:
+        query["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+        ]
 
     # Get workshops
     cursor = workshops_collection.find(query).sort("start_date", 1).skip(skip).limit(limit)
     workshops = await serialize_list(cursor)
     return workshops
 
-@router.get("/workshops/{slug}", response_model=Workshop)
-async def get_workshop(slug: str):
-    workshop = await workshops_collection.find_one({"slug": slug})
-    
-    if workshop is None:
-        raise HTTPException(status_code=404, detail="Workshop not found")
-    
-    return parse_mongo_doc(workshop)
-
-@router.get("/workshops/id/{workshop_id}", response_model=Workshop)
-async def get_workshop_by_id(workshop_id: str):
+@router.get("/workshops/{workshop_id}", response_model=Workshop)
+async def get_workshop(workshop_id: str):
     obj_id = serialize_id(workshop_id)
     if not obj_id:
         raise HTTPException(status_code=404, detail="Invalid workshop ID")
@@ -56,13 +53,6 @@ async def get_workshop_by_id(workshop_id: str):
 
 @router.post("/workshops", response_model=Workshop)
 async def create_workshop(workshop: WorkshopCreate, current_user: User = Depends(get_admin_user)):
-    # Check if workshop with same slug exists
-    if await workshops_collection.find_one({"slug": workshop.slug}):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Workshop with this slug already exists"
-        )
-    
     workshop_dict = workshop.model_dump()
     workshop_dict["created_at"] = datetime.utcnow()
     workshop_dict["registered_count"] = 0

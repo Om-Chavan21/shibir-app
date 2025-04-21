@@ -105,7 +105,8 @@ const AdminUsers = () => {
     if (!selectedUser) return;
     
     try {
-      await updateUser(selectedUser.id, editFormData);
+      console.log(editFormData)
+      await updateUser(selectedUser["_id"], editFormData);
       
       // Update the local state
       const updatedUsers = users.map(user =>

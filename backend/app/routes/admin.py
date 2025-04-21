@@ -68,6 +68,10 @@ async def admin_get_users(current_user: User = Depends(get_admin_user)):
     Get all users for admin management
     """
     users = await users_collection.find().to_list(1000)
+
+    for user in users:
+        user["_id"]=str(user["_id"])
+
     return users
 
 @router.put("/users/{user_id}", response_model=User)
@@ -97,11 +101,15 @@ async def admin_update_user(user_id: str, user_update: UserUpdate, current_user:
         {"$set": update_data}
     )
     
-    if result.modified_count == 0:
+    # if result.modified_count == 0:
+    if not result:
         raise HTTPException(status_code=400, detail="User update failed")
     
     # Get updated user
     updated_user = await users_collection.find_one({"_id": user_obj_id})
+
+    updated_user["_id"] = str(updated_user["_id"])
+
     return updated_user
 
 @router.get("/registrations", response_model=List[Registration])
@@ -110,6 +118,8 @@ async def admin_get_registrations(current_user: User = Depends(get_admin_user)):
     Get all registrations for admin management
     """
     registrations = await registrations_collection.find().to_list(1000)
+    for registration in registrations:
+        registration["_id"]=str(registration["_id"])
     return registrations
 
 @router.post("/export/registrations/{workshop_id}")

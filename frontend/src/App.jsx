@@ -8,6 +8,8 @@ import WorkshopDetail from './pages/WorkshopDetail';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // User pages
 import UserDashboard from './pages/user/Dashboard';
@@ -42,9 +44,11 @@ function App() {
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
         <Route path="workshops" element={<WorkshopList />} />
-        <Route path="workshops/:slug" element={<WorkshopDetail />} />
+        <Route path="workshops/:id" element={<WorkshopDetail />} />
         <Route path="register" element={<Register />} />
         <Route path="login" element={<Login />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
         <Route path="registration/:workshopId" element={<Registration />} />
       </Route>
       

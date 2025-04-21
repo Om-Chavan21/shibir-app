@@ -30,6 +30,11 @@ const WorkshopList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    status: '',
+    grade: '',
+    topic: ''
+  });
 
   // For advanced filtering
   const [showFilters, setShowFilters] = useState(false);
@@ -65,7 +70,7 @@ const WorkshopList = () => {
     if (grade) newActiveFilters.push({ type: 'grade', value: `Grade ${grade}` });
     setActiveFilters(newActiveFilters);
   }, [location.search]);
-  
+
   // Load workshops based on filters
   useEffect(() => {
     const loadWorkshops = async () => {

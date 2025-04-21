@@ -29,7 +29,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
 const WorkshopForm = () => {
-  const { id } = useParams(); // This could be either an ID or slug
+  const { id } = useParams();
   const navigate = useNavigate();
   const { showMessage } = useSnackbar();
   const [workshop, setWorkshop] = useState(null);
@@ -59,7 +59,6 @@ const WorkshopForm = () => {
   
   const validationSchema = Yup.object({
     title: Yup.string().required('Title is required'),
-    slug: Yup.string().required('Slug is required'),
     description: Yup.string().required('Description is required'),
     short_description: Yup.string().required('Short description is required'),
     image_url: Yup.string().url('Must be a valid URL').required('Image URL is required'),
@@ -91,7 +90,6 @@ const WorkshopForm = () => {
   
   const initialValues = {
     title: workshop?.title || '',
-    slug: workshop?.slug || '',
     description: workshop?.description || '',
     short_description: workshop?.short_description || '',
     image_url: workshop?.image_url || '',
@@ -181,7 +179,7 @@ const WorkshopForm = () => {
                   <Divider sx={{ mb: 2 }} />
                 </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     id="title"
@@ -193,22 +191,6 @@ const WorkshopForm = () => {
                     onBlur={handleBlur}
                     error={touched.title && Boolean(errors.title)}
                     helperText={touched.title && errors.title}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="slug"
-                    name="slug"
-                    label="URL Slug"
-                    variant="outlined"
-                    value={values.slug}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    error={touched.slug && Boolean(errors.slug)}
-                    helperText={(touched.slug && errors.slug) || "Used in the URL, e.g., 'physics-workshop'"}
-                    disabled={isEditMode} // Don't allow slug editing in edit mode
                   />
                 </Grid>
                 
