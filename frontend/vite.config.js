@@ -3,8 +3,11 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env variables based on mode (dev/prod/etc)
+  // Load .env files locally
   const env = loadEnv(mode, process.cwd(), '');
+
+  // Use Netlify environment variable if available, otherwise fallback to .env
+  const VITE_API_BASE_URL = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL;
 
   return {
     plugins: [react()],
@@ -12,10 +15,14 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL, // Use your env var here
+          target: VITE_API_BASE_URL,
           changeOrigin: true,
-        }
-      }
-    }
+        },
+      },
+    },
+    define: {
+      // Optionally expose the env var to client code if needed
+      'process.env.VITE_API_BASE_URL': JSON.stringify(VITE_API_BASE_URL),
+    },
   };
 });
