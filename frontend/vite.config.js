@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
 
   // Use Netlify environment variable if available, otherwise fallback to .env
   const VITE_API_BASE_URL = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL;
-
+  console.log(VITE_API_BASE_URL)
+  
   return {
     plugins: [react()],
     server: {
