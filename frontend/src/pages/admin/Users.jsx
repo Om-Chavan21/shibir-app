@@ -105,15 +105,15 @@ const AdminUsers = () => {
     if (!selectedUser) return;
     
     try {
-      console.log(editFormData)
       await updateUser(selectedUser["_id"], editFormData);
       
       // Update the local state
-      const updatedUsers = users.map(user =>
-        user.id === selectedUser.id
-          ? { ...user, ...editFormData }
-          : user
-      );
+      const updatedUsers = users.map(user =>{
+        return user["_id"] === selectedUser["_id"]
+        ? { ...user, ...editFormData }
+        : user;
+      });
+      
       
       setUsers(updatedUsers);
       showMessage('User updated successfully!', 'success');
