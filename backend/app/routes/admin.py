@@ -89,6 +89,11 @@ async def admin_update_user(user_id: str, user_update: UserUpdate, current_user:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Check if admin is trying to update their own user
+    if str(user["_id"]) == str(current_user.id):
+        raise HTTPException(status_code=403, detail="Admin cannot update their own user details")
+    
+
     # Filter out None values
     update_data = {k: v for k, v in user_update.dict().items() if v is not None}
     
